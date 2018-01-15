@@ -36,7 +36,6 @@ class ImageOptim extends Module
                                   "IMAGEOPTIM_URL"        => "http://api.resmush.it/ws.php?img=",
                                   "IMAGEOPTIM_QUALITY"    => "4500");
 
-
     public function __construct()
     {
         $this->name = 'ImageOptim';
