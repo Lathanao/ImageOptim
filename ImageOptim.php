@@ -24,7 +24,9 @@
  */
 
 use ImageOpt\ImageOpt;
+use ImageOpt\ImageOrigin;
 include_once(dirname(__FILE__).'/models/ImageOpt.php');
+include_once(dirname(__FILE__).'/models/ImageOrigin.php');
 
 if (!defined('_TB_VERSION_'))  exit;
 
@@ -60,7 +62,7 @@ class ImageOptim extends Module
 
     public function install()
     {
-        if (!ImageOpt::createDatabase())
+        if (!ImageOpt::createDatabase() || !ImageOrigin::createDatabase())
             return false;
 
         return parent::install();
@@ -68,89 +70,27 @@ class ImageOptim extends Module
 
     public function uninstall()
     {
-        if (!ImageOpt::dropDatabase())
+        if (!ImageOpt::dropDatabase() || !ImageOrigin::dropDatabase())
             return false;
 
         return parent::uninstall();
     }
 
-    // public function renderPageHeaderToolbar()
-    // {
-    //    $idCmsCategory = (int) Tools::getValue('id_cms_category');
-    //    $idCmsPage = Tools::getValue('id_cms');
-    //
-    //    if (!$idCmsCategory) {
-    //        $idCmsCategory = 1;
-    //    }
-    //
-    //    $cmsCategory = new CMSCategory($idCmsCategory);
-    //
-    //    if ($this->display == 'edit_category') {
-    //        if (Tools::getValue('addcms_category') !== false) {
-    //            $this->toolbar_title[] = $this->l('Add new');
-    //        } else {
-    //            $this->toolbar_title[] = sprintf($this->l('Edit: %s'), $cmsCategory->name[$this->context->employee->id_lang]);
-    //        }
-    //    } elseif ($this->display == 'edit_page') {
-    //        $this->toolbar_title[] = $cmsCategory->name[$this->context->employee->id_lang];
-    //
-    //        if (Tools::getValue('addcms') !== false) {
-    //            $this->toolbar_title[] = $this->l('Add new');
-    //        } elseif ($idCmsPage) {
-    //            $cmsPage = new CMS($idCmsPage);
-    //            $this->toolbar_title[] = sprintf($this->l('Edit: %s'), $cmsPage->meta_title[$this->context->employee->id_lang]);
-    //        }
-    //    } else {
-    //        $this->toolbar_title[] = $this->l('CMS');
-    //    }
-    //
-    //    if ($this->display == 'list') {
-    //        $this->page_header_toolbar_btn['new_cms_category'] = [
-    //            'href' => static::$currentIndex.'&addcms_category&token='.$this->token,
-    //            'desc' => $this->l('Add new CMS category', null, null, false),
-    //            'icon' => 'process-icon-new',
-    //        ];
-    //        $this->page_header_toolbar_btn['new_cms_page'] = [
-    //            'href' => static::$currentIndex.'&addcms&id_cms_category='.(int) $idCmsCategory.'&token='.$this->token,
-    //            'desc' => $this->l('Add new CMS page', null, null, false),
-    //            'icon' => 'process-icon-new',
-    //        ];
-    //    }
-    //
-    //    $this->page_header_toolbar_title = implode(' '.Configuration::get('PS_NAVIGATION_PIPE').' ', $this->toolbar_title);
-    //
-    //    if (is_array($this->page_header_toolbar_btn)
-    //        && $this->page_header_toolbar_btn instanceof Traversable
-    //        || trim($this->page_header_toolbar_title) != ''
-    //    ) {
-    //        $this->show_page_header_toolbar = true;
-    //    }
-    //
-    //    // TODO: Check if we need this
-    //
-    //    $this->context->smarty->assign(
-    //        [
-    //            'show_page_header_toolbar'  => $this->show_page_header_toolbar,
-    //            'title'                     => $this->page_header_toolbar_title,
-    //            'toolbar_btn'               => $this->page_header_toolbar_btn,
-    //            'page_header_toolbar_btn'   => $this->page_header_toolbar_btn,
-    //            'page_header_toolbar_title' => $this->toolbar_title,
-    //        ]
-    //    );
-    // }
-
     public function getContent()
     {
-        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/css/admin-themsetup.css');
+        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/css/admin_imageOptim.css');
         $this->context->controller->addJS(_MODULE_DIR_.$this->name.'/js/admin_imageOptim.js');
 
         $this->getSetup();
         $this->setSetup();
         // $this->updateOptimisationTable();
 
+        ImageOrigin::dropDatabase();
+        ImageOrigin::createDatabase();
         ImageOpt::dropDatabase();
         ImageOpt::createDatabase();
-        $this->getImages();
+        $this->setImagesOriginInDb();
+        $this->setImagesOptInDb();
         // $this->_html .= $this->admin_imageoptim->renderList();
         // $this->getOptimisedImage();
         $this->_html .= $this->renderList();
@@ -227,32 +167,54 @@ class ImageOptim extends Module
     public function renderList()
     {
       $fields_list = array(
-
-        'id_image' => array(
-          'title' => $this->l('Id Image'),
-          'search' => false,
+        'id' => array(
+          'title' => $this->l('Id'),
+          'search' => true,
+          'width' => 30,
         ),
-        'id_product' => array(
-          'title' => $this->l('Id Product'),
-          'search' => false,
+        'id_image' => array(
+          'title' => $this->l('Id image'),
+          'search' => true,
+          'width' => 100,
+        ),
+        'id_type' => array(
+          'title' => $this->l('type'),
+          'search' => true,
+          'width' => 100,
         ),
         'width' => array(
           'title' => $this->l('width'),
-          'search' => false,
+          'search' => true,
+          'width' => 40,
         ),
         'height' => array(
           'title' => $this->l('height'),
-          'search' => false,
+          'search' => true,
+          'width' => 40,
         ),
-        'md5' => array(
-          'title' => $this->l('md5'),
-          'search' => false,
+        'md5_origin' => array(
+          'title' => $this->l('Md5'),
+          'search' => true,
+        ),
+        'weight_origin' => array(
+          'title' => $this->l('Weight before'),
+        ),
+        'weight_opt' => array(
+          'title' => $this->l('Weight after'),
+        ),
+        'rate' => array(
+          'title' => $this->l('Rate'),
+          'search' => true,
+        ),
+        'Quality' => array(
+          'title' => $this->l('Quality'),
+          'search' => true,
         ),
       );
 
       $helper_list = New HelperList();
       $helper_list->module = $this;
-      $helper_list->title = $this->l('Images list');
+      $helper_list->title = $this->l('Original Images list');
       $helper_list->shopLinkType = '';
       $helper_list->no_link = true;
       $helper_list->show_toolbar = true;
@@ -261,11 +223,10 @@ class ImageOptim extends Module
       $helper_list->table = 'merged';
       $helper_list->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name;
       $helper_list->token = Tools::getAdminTokenLite('AdminModules');
-      $helper_list->actions = array('viewCustomer');
 
       $this->_helperlist = $helper_list;
 
-      $listImages = $this->getListImage();
+      $listImages = $this->getListImageOpt();
       $helper_list->listTotal = count($listImages);
 
       /* Paginate the result */
@@ -275,17 +236,29 @@ class ImageOptim extends Module
 
       $helper_list->actions = array('Generate');
       $helper_list->bulk_actions = [
-          'updateOrderStatus' => ['text' => $this->l('Change Order Status'), 'icon' => 'icon-refresh'],
+          'generateBulkImages' => ['text' => $this->l('Generate Bulk Images'), 'icon' => 'icon-refresh'],
       ];
 
       return $helper_list->generateList($listImages, $fields_list);
     }
 
-    public function getListImage()
+
+
+    public function getListImageOpt()
     {
       $dbquery = new DbQuery();
-      $dbquery->select('*, img.`id_imageOpt` AS `id`');
-      $dbquery->from('imageopt', 'img');
+      $dbquery->select('iop.id, ior.id_image, iop.id_type, iop.width, iop.height, iop.weight_origin, iop.weight_opt,  (iop.weight_opt / iop.weight_origin * 100) as rate, iop.quality, iop.md5_origin, iop.date_upd');
+      $dbquery->from('image_origin', 'ior');
+      $dbquery->leftJoin('image_opt', 'iop', 'ior.`id_image` = iop.`id_image`');
+
+      return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
+    }
+
+    public function getListImageOrigin()
+    {
+      $dbquery = new DbQuery();
+      $dbquery->select('*, img.`id_image` AS `id`');
+      $dbquery->from('image_origin', 'img');
       return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
     }
 
@@ -299,15 +272,16 @@ class ImageOptim extends Module
 
     public function displayGenerateLink($token = null, $id, $name = null)
     {
-        $image = new Image($id);
+        $imageOpt = new ImageOpt($id);
+
         $this->smarty->assign(array(
           'href' => $this->context->link->getAdminLink('AdminModules', true/*token*/, null/*sfrouteparam*/, array(  "ajax"=> true,
                                                                                                                     "configure"=> $this->name,
                                                                                                                     "action"=> "GenerateOptimImage",
                                                                                                                     "configure"=> $this->name,
                                                                                                                     "key"=> $this->secure_key,
-                                                                                                                    "GenerateOptimImage"=> "1")),
-          'link' => $this->context->link->getImageLink("optim", $image->id_image, 'home_default'),
+                                                                                                                    "GenerateOptimImage"=> $id)),
+          'link' => $this->context->link->getImageLink("optim", $imageOpt->id_image, $imageOpt->id_type),
           'action' => $this->l('Generate'),
           'disable' => !((int)$id > 0),
         ));
@@ -318,7 +292,11 @@ class ImageOptim extends Module
     public function getOptimisedImage()
     {
         $imageTypes = ImageType::getImagesTypes();
+          // Tools::d($this->context->link->getImageLink('taggle'/*name*/, '20'/*ids*/, 'cart_default'/*type*/));
         define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
+
+        $demo = "https://front.thirtybees.com";
+
 
         if (Tools::isSubmit("id_image"))
             die ('error');
@@ -364,7 +342,7 @@ class ImageOptim extends Module
         return $this->values;
     }
 
-    public function getImages()
+    public function setImagesOriginInDb()
     {
         $idLang = $this->context->language->id;
         $products = Product::getProducts(   $idLang,
@@ -389,18 +367,52 @@ class ImageOptim extends Module
                 $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'.'.$image->image_format;
                 $info = getimagesize($path);
 
-                $imageOpt = new ImageOpt();
+                $imageOpt = new ImageOrigin();
                 $imageOpt->id_image = $image->id_image;
                 $imageOpt->id_product = $image->id_product;
                 $imageOpt->width = $info[0];
                 $imageOpt->height = $info[1];
-                $imageOpt->weight_before = filesize ( $path );
+                $imageOpt->weight = filesize ( $path );
                 $imageOpt->md5 = (string)md5($path);
                 $imageOpt->path = $path;
 
                 $imageOpt->save();
             }
         }
+    }
+
+    public function setImagesOptInDb()
+    {
+        $idLang = $this->context->language->id;
+
+        $imageTypes = array_filter(ImageTypeCore::getImagesTypes(), function($val, $key) {
+            return $val["products"] === "1";
+        }, ARRAY_FILTER_USE_BOTH);
+
+        $imageList = $this->getListImageOrigin();
+
+        foreach ($imageList as $keyImage => $valueImage) {
+
+            foreach ($imageTypes as $keyType => $valueTypes) {
+
+                $image = new image($valueImage["id_image"]);
+                $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'-'.$valueTypes['name'].'.'.$image->image_format;
+                $info = getimagesize($path);
+
+                $imageOpt = new ImageOpt();
+
+                $imageOpt->id_image = $valueImage["id_image"];
+                $imageOpt->id_type = $valueTypes['name'];
+                $imageOpt->width = $info[0];
+                $imageOpt->height = $info[1];
+                $imageOpt->weight_origin = filesize ( $path );
+                $imageOpt->md5_origin = (string)md5($path);
+                $imageOpt->path = $path;
+
+                $imageOpt->save();
+            }
+        }
+
     }
 
     public function setSetup()

@@ -9,23 +9,18 @@
 
 namespace ImageOpt;
 
-class ImageOpt extends \ObjectModel
+class ImageOrigin extends \ObjectModel
 {
-    const TABLE      = 'image_opt';
+    const TABLE      = 'image_origin';
     const PRIMARY    = 'id';
     const LANG_TABLE = null;
     const SHOP_TABLE = null;
 
     public          $id_image;
-    public          $id_type;
+    public          $id_product;
     public          $width;
     public          $height;
-    public          $weight_origin;
-    public          $weight_opt;
-    public          $engine;
-    public          $quality;
-    public          $md5_origin;
-    public          $md5_opt;
+    public          $weight;
     public          $date_add;
     public          $date_upd;
     public          $path = null;
@@ -37,16 +32,10 @@ class ImageOpt extends \ObjectModel
         'multishop'      => false,
         'fields'  => array(
           'id_image' =>       array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
-          'id_type' =>        array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'db_type' => 'VARCHAR(255)'),
           'id_product' =>     array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
           'width' =>          array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
           'height' =>         array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
-          'weight_origin' =>  array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
-          'weight_opt' =>     array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
-          'engine' =>         array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'db_type' => 'VARCHAR(255)'),
-          'quality' =>        array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
-          'md5_origin' =>     array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'db_type' => 'VARCHAR(255)'),
-          'md5_opt' =>        array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'db_type' => 'VARCHAR(255)'),
+          'weight_before' =>  array('type' => self::TYPE_INT,    'validate' => 'isUnsignedInt', 'db_type' => 'INT(11)'),
           'date_add' =>       array('type' => self::TYPE_DATE,   'validate' => 'isDate',        'db_type' => 'DATETIME', 'default' => '1970-01-01 00:00:00'),
           'date_upd' =>       array('type' => self::TYPE_DATE,   'validate' => 'isDate',        'db_type' => 'DATETIME', 'default' => '1970-01-01 00:00:00'),
           '$path' =>          array('type' => self::TYPE_STRING, 'validate' => 'isGenericName', 'db_type' => 'VARCHAR(255)'),
@@ -59,6 +48,7 @@ class ImageOpt extends \ObjectModel
 
     public static function getPath(Image $image)
     {
+
         $this->pathImage = $image->image_dir.$image->getExistingImgPath().'.'.$image->image_format;
         return $this->pathImage;
     }
