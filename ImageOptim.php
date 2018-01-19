@@ -1,32 +1,14 @@
-<?php
-/**
- * 2007-2016 PrestaShop
- *
- * Thirty Bees is an extension to the PrestaShop e-commerce software developed by PrestaShop SA
- * Copyright (C) 2017 Thirty Bees
- *
- * NOTICE OF LICENSE
- *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
- * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/afl-3.0.php
- * If you did not receive a copy of the license and are unable to
- * obtain it through the world-wide-web, please send an email
- * to license@thirtybees.com so we can send you a copy immediately.
- *
- * @author    Thirty Bees <modules@thirtybees.com>
- * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2017 Thirty Bees
- * @copyright 2007-2016 PrestaShop SA
- * @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
- * PrestaShop is an internationally registered trademark & property of PrestaShop SA
- */
+<?php /********************************************************************//**
+*          Beautiful Theme for Prestashop
+*
+*          @author         <tanguy.salmon@gmail.com>
+*          @copyright      2017 Lathanao
+*          @version        0.1.1
+*          @license        Commercial license see README.md
+******************************************************************************/
 
 use ImageOpt\ImageOpt;
-use ImageOpt\ImageOrigin;
 include_once(dirname(__FILE__).'/models/ImageOpt.php');
-include_once(dirname(__FILE__).'/models/ImageOrigin.php');
 
 if (!defined('_TB_VERSION_'))  exit;
 
@@ -35,14 +17,17 @@ class ImageOptim extends Module
 {
     protected $_html = '';
     private $values = array(      "IMAGEOPTIM_ACTIVE"     => "1",
+                                  "IMAGEOPTIM_DEMO"       => "1",
+                                  "IMAGEOPTIM_LOCAL"      => "1",
+                                  "IMAGEOPTIM_QUALITY"    => "0",
                                   "IMAGEOPTIM_URL"        => "http://api.resmush.it/ws.php?img=",
-                                  "IMAGEOPTIM_QUALITY"    => "4500");
+                                  "IMAGEOPTIM_QUALITY_V"  => "100");
 
     public function __construct()
     {
         $this->name = 'ImageOptim';
         $this->tab = 'front_office_features';
-        $this->version = '1.0.0';
+        $this->version = '0.1.1';
         $this->author = 'Lathanao';
         $this->bootstrap = true;
         $this->secure_key = Tools::encrypt($this->name);
@@ -62,6 +47,10 @@ class ImageOptim extends Module
 
     public function install()
     {
+        foreach ($this->values as $key => $value)
+            if(!Configuration::updateValue($key, $value))
+                return false;
+
         if (!ImageOpt::createDatabase() || !ImageOrigin::createDatabase())
             return false;
 
@@ -78,19 +67,24 @@ class ImageOptim extends Module
 
     public function getContent()
     {
+        // foreach ($this->values as $key => $value)
+        //     if(!Configuration::updateValue($key, $value))
+        //         return false;
+
         $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/css/admin_imageOptim.css');
         $this->context->controller->addJS(_MODULE_DIR_.$this->name.'/js/admin_imageOptim.js');
 
         $this->getSetup();
         $this->setSetup();
-        // $this->updateOptimisationTable();
 
-        ImageOrigin::dropDatabase();
-        ImageOrigin::createDatabase();
-        ImageOpt::dropDatabase();
-        ImageOpt::createDatabase();
-        $this->setImagesOriginInDb();
-        $this->setImagesOptInDb();
+        $this->updateImagesOriginInDb();
+
+        // ImageOrigin::dropDatabase();
+        // ImageOrigin::createDatabase();
+        // ImageOpt::dropDatabase();
+        // ImageOpt::createDatabase();
+        // $this->setImagesOriginInDb();
+        // $this->setImagesOptInDb();
         // $this->_html .= $this->admin_imageoptim->renderList();
         // $this->getOptimisedImage();
         $this->_html .= $this->renderList();
@@ -102,15 +96,39 @@ class ImageOptim extends Module
     {
         $formFields = array(
             'form' => array(
-                'legend' => array(
-                    'title' => $this->l('Settings'),
-                    'icon'  => 'icon-cogs',
-                ),
+                'legend' => array('title' => $this->l('Settings'),'icon' => 'icon-cogs'),
+                'description' => $this->l('This module allows get optimsed image from a free service provide at https://resmush.it.').'<br /><br />'.
+                                 $this->l('Great result are most important ond image obove 100ko. Under, the save rate is not really meaningful.').'<br /><br />'.
+                                 $this->l('The default quality offert by the service is 92%, you can modify it with the field bellow"').'<br /><br />'.
+                                 $this->l('You can try in demo mode before to test the service, and check in your image dir the picture with a surfixed name with "opt" like "1-cart_default_opt.jpg".').'<br /><br />'.
+                                 $this->l('Original images are never optimised.').'<br /><br />'.
+                                 $this->l('If something wrong happened, just rebuilt your picture in admin panel > preferences > images.').'<br /><br />'.
+                                 $this->l('In admin panel > preferences > images, you can setup JPEG compression at 100%, and let this modules weightlight you final images.').'<br /><br />'.
+                                 $this->l('Thank you for using this module.').'<br /><br />',
                 'input'  => array(
                     array(
                         'type' => 'switch',
-                        'label' => $this->l('Activate module'),
-                        'name' => array_keys($this->values)[0],
+                        'label' => $this->l('Demo Mode'),
+                        'name' => 'IMAGEOPTIM_DEMO',
+                        'required' => false,
+                        'is_bool' => true,
+                        'values' => array(
+                            array(
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->l('Enabled')
+                            ),
+                            array(
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->l('Disabled')
+                            )
+                        ),
+                    ),
+                    array(
+                        'type' => 'switch',
+                        'label' => $this->l('Use image url in "front.thirtybees.com" for Local machin testing ?'),
+                        'name' => 'IMAGEOPTIM_LOCAL',
                         'required' => false,
                         'is_bool' => true,
                         'values' => array(
@@ -144,17 +162,9 @@ class ImageOptim extends Module
         );
 
         $helper = new HelperForm();
-        $helper->show_toolbar = false;
-        $helper->table = $this->table;
-        $lang = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
-        $helper->default_form_language = $lang->id;
-        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
-        $this->fields_form = array();
-
-        $helper->identifier = $this->identifier;
+        $helper->default_form_language = $this->context->language->id;
+        $helper->show_toolbar = true;
         $helper->submit_action = 'submitForm';
-        $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
-        $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = array(
             'fields_value' => $this->getSetup(),
             'languages'    => $this->context->controller->getLanguages(),
@@ -175,27 +185,27 @@ class ImageOptim extends Module
         'id_image' => array(
           'title' => $this->l('Id image'),
           'search' => true,
-          'width' => 100,
+          'width' => 50,
         ),
         'id_type' => array(
           'title' => $this->l('type'),
           'search' => true,
           'width' => 100,
         ),
-        'width' => array(
-          'title' => $this->l('width'),
-          'search' => true,
-          'width' => 40,
-        ),
-        'height' => array(
-          'title' => $this->l('height'),
-          'search' => true,
-          'width' => 40,
-        ),
-        'md5_origin' => array(
-          'title' => $this->l('Md5'),
-          'search' => true,
-        ),
+        // 'width' => array(
+        //   'title' => $this->l('width'),
+        //   'search' => true,
+        //   'width' => 40,
+        // ),
+        // 'height' => array(
+        //   'title' => $this->l('height'),
+        //   'search' => true,
+        //   'width' => 40,
+        // ),
+        // 'md5_origin' => array(
+        //   'title' => $this->l('Md5'),
+        //   'search' => true,
+        // ),
         'weight_origin' => array(
           'title' => $this->l('Weight before'),
         ),
@@ -205,10 +215,12 @@ class ImageOptim extends Module
         'rate' => array(
           'title' => $this->l('Rate'),
           'search' => true,
+          'width' => 100,
         ),
         'Quality' => array(
           'title' => $this->l('Quality'),
           'search' => true,
+          'width' => 100,
         ),
       );
 
@@ -242,14 +254,11 @@ class ImageOptim extends Module
       return $helper_list->generateList($listImages, $fields_list);
     }
 
-
-
     public function getListImageOpt()
     {
       $dbquery = new DbQuery();
-      $dbquery->select('iop.id, ior.id_image, iop.id_type, iop.width, iop.height, iop.weight_origin, iop.weight_opt,  (iop.weight_opt / iop.weight_origin * 100) as rate, iop.quality, iop.md5_origin, iop.date_upd');
-      $dbquery->from('image_origin', 'ior');
-      $dbquery->leftJoin('image_opt', 'iop', 'ior.`id_image` = iop.`id_image`');
+      $dbquery->select('iop.id, iop.id_image, iop.id_type, iop.width, iop.height, iop.weight_origin, iop.weight_opt,  (iop.weight_opt / iop.weight_origin * 100) as rate, iop.quality, iop.md5_origin, iop.date_upd');
+      $dbquery->from('image_opt', 'iop');
 
       return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
     }
@@ -274,72 +283,63 @@ class ImageOptim extends Module
     {
         $imageOpt = new ImageOpt($id);
 
-        $this->smarty->assign(array(
-          'href' => $this->context->link->getAdminLink('AdminModules', true/*token*/, null/*sfrouteparam*/, array(  "ajax"=> true,
-                                                                                                                    "configure"=> $this->name,
-                                                                                                                    "action"=> "GenerateOptimImage",
-                                                                                                                    "configure"=> $this->name,
-                                                                                                                    "key"=> $this->secure_key,
-                                                                                                                    "GenerateOptimImage"=> $id)),
-          'link' => $this->context->link->getImageLink("optim", $imageOpt->id_image, $imageOpt->id_type),
-          'action' => $this->l('Generate'),
-          'disable' => !((int)$id > 0),
+        $this->smarty->assign(array( 'href' => $this->context->link->getAdminLink('AdminModules', true/*token*/ )."&ajax=1".
+                                                                                                                  "&configure=".$this->name.
+                                                                                                                  "&action="."GenerateOptimImage".
+                                                                                                                  "&key=".$this->secure_key.
+                                                                                                                  "&id_image=".$id,
+                                    'link' => $this->context->link->getImageLink("optim", $imageOpt->id_image, $imageOpt->id_type),
+                                    'action' => $this->l('Generate'),
+                                    'disable' => !((int)$id > 0),
         ));
 
         return $this->display(__FILE__, 'views/admin/list_action_generate.tpl');
     }
 
-    public function getOptimisedImage()
+
+
+    public function getSetup()
     {
-        $imageTypes = ImageType::getImagesTypes();
-          // Tools::d($this->context->link->getImageLink('taggle'/*name*/, '20'/*ids*/, 'cart_default'/*type*/));
-        define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
-
-        $demo = "https://front.thirtybees.com";
-
-
-        if (Tools::isSubmit("id_image"))
-            die ('error');
-        $image = new image(Tools::getValue("id_image"));
-
-        foreach ($imageTypes as $key => $type) {
-            $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'-'.$type["name"].'.'.$image->image_format;
-            $url = $this->context->link->getImageLink("optim", $image->id_image, $type["name"]);
-            $result = json_decode(file_get_contents(WEBSERVICE . $url));
-            if(isset($result->error)){
-                die($result->error);
-            } else {
-                move_uploaded_file($result->dest, $path);
-            }
-        }
-
-        $image = new image($valueimage["id_image"]);
-        $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'.'.$image->image_format;
-
-        define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
-        $s = 'https://store.thirtybees.com/303-thickbox_default/sucuri-module.jpg';
-        $s = 'https://resmush.it/assets/images/jpg_example_original.jpg';
-        $o = json_decode(file_get_contents(WEBSERVICE . $s));
-
-        if(isset($o->error)){
-          die('Error');
-        }
-        return $o->dest;
-    }
-
-    public function getSetup($Multilang = null /*Need multilang for admin, no need for front */)
-    {
-        $idLang = $this->context->language->id;
-        $languages = Language::getLanguages(false);
-
         foreach ($this->values as $key => $value)
-            if ($Multilang && is_array($value))
-                foreach ($languages as $lang)
-                    $this->values[$key][$lang['id_lang']] = Configuration::get($key, $lang['id_lang']);
-            else
-                $this->values[$key] = Configuration::get($key, $idLang);
+            $this->values[$key] = Configuration::get($key);
 
         return $this->values;
+    }
+
+    public function updateImagesOriginInDb()
+    {
+        $images = Image::getAllImages();
+
+        $imageTypes = array_filter(ImageTypeCore::getImagesTypes(), function($val, $key) {
+            return $val["products"] === "1";
+        }, ARRAY_FILTER_USE_BOTH);
+
+        foreach ($images as $key => $image)  {
+
+            if ( count($imageTypes) == count(ImageOpt::findOnesByIdImage($image['id_image'])))
+                continue;
+
+            foreach ($imageTypes as $keyType => $valueTypes) {
+
+                $img = new image($image['id_image']);
+                $path = _PS_PROD_IMG_DIR_.$img->getExistingImgPath().'-'.$valueTypes['name'].'.'.$img->image_format;
+                $info = getimagesize($path);
+
+                $imageOpt = new ImageOpt();
+
+                $imageOpt->id_image = $image["id_image"];
+                $imageOpt->id_product = $img->id_image;
+                $imageOpt->id_type = stripslashes($valueTypes['name']);
+                $imageOpt->width = $info[0];
+                $imageOpt->height = $info[1];
+                $imageOpt->weight_origin = filesize ( $path );
+                $imageOpt->md5_origin = (string)md5($path);
+                $imageOpt->path = $path;
+
+                $imageOpt->save();
+
+            }
+        }
     }
 
     public function setImagesOriginInDb()
@@ -412,24 +412,93 @@ class ImageOptim extends Module
                 $imageOpt->save();
             }
         }
-
     }
 
     public function setSetup()
     {
-        $languages = Language::getLanguages(false);
-
         foreach ($_POST as $key => $value)
             if (array_key_exists($key, $this->values))
                 Configuration::updateValue($key, $value, true);
-            elseif (array_key_exists(substr($key, 0, -2), $this->values))
-                Configuration::updateValue(substr($key, 0, -2), array( substr($key,-1) => $value), true);
 
         return true;
     }
 
     public function ajaxProcessGenerateOptimImage()
     {
-        echo 'coucou';
+        if ($this->secure_key != Tools::getValue("key"))
+            die('Error key');
+
+        if (Tools::isSubmit('id_image'))
+            die($this->getOptimisedImage(Tools::getValue("id_image")));
+
+        die('Error');
+    }
+
+    public function getOptimisedImage($id_imageOpt = null)
+    {
+        if ($id_imageOpt == null)
+            die('Error id');
+
+        define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
+        $demo = "https://front.thirtybees.com";
+        $sufix = (Configuration::get('IMAGEOPTIM_DEMO') ? '_opt.' : '');
+
+        $imageOpt = new imageOpt($id_imageOpt);
+        $image = new Image($imageOpt->id_image);
+
+        $url = $this->context->link->getImageLink('optim'/*name*/, $imageOpt->id_image/*ids*/, $imageOpt->id_type/*type*/);
+        $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'-'.$imageOpt->id_type.'.'.$image->image_format;
+        $pathOpt = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'-'.$imageOpt->id_type.$sufix.$image->image_format;
+
+        if (Configuration::get('IMAGEOPTIM_LOCAL'))
+            $url = str_replace("http://thirtybees", $demo, $url);
+
+        // if(!strpos((get_headers($url))[0],'Content-Type: image/jpeg'))
+        //     die("Image URL not exists $url");
+        // else
+        //    die("Image URL  exists $url");
+        //
+        // if(!file_exists ( $path ))
+        //     die('Error file doens\'t exist on disk at '.$path);
+
+        $result = json_decode(file_get_contents(WEBSERVICE . $url));
+
+        if(isset($result->error))
+            die($result->error);
+        else {
+
+            if(!file_put_contents($pathOpt, fopen($result->dest, 'r')))
+                die('Error during saving file on disk');
+
+            $imageOpt->weight_opt = filesize ( $pathOpt );
+            $imageOpt->md5_origin = (string)md5($pathOpt);
+            if(!$imageOpt->save())
+                die('Error during saving imageOpt Object');
+
+            ob_end_clean();
+            header('Content-Type: application/json');
+            die(json_encode([
+                'dest' => $result->dest,
+                'pathOpt' => $pathOpt,
+                'imageopt' => $imageOpt
+            ]));
+            // move_uploaded_file($result->dest, $path);
+            // file_put_contents("Tmpfile.zip", fopen("http://someurl/file.zip", 'r'));
+        }
+
+        die('Error process');
+
+        // $image = new image($valueimage["id_image"]);
+        // $path = _PS_PROD_IMG_DIR_.$image->getExistingImgPath().'.'.$image->image_format;
+        //
+        // define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
+        // $s = 'https://store.thirtybees.com/303-thickbox_default/sucuri-module.jpg';
+        // $s = 'https://resmush.it/assets/images/jpg_example_original.jpg';
+        // $o = json_decode(file_get_contents(WEBSERVICE . $s));
+        //
+        // if(isset($o->error)){
+        //   die('Error');
+        // }
+        // return $o->dest;
     }
 }

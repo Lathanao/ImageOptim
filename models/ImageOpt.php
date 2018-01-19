@@ -63,6 +63,19 @@ class ImageOpt extends \ObjectModel
         return $this->pathImage;
     }
 
+    public static function findOnesByIdImage($id_image = null)
+    {
+        if ($id_image == null)
+            return false;
+
+        $dbquery = new \DbQuery();
+        $dbquery->select('*');
+        $dbquery->from('image_opt', 'iop');
+        $dbquery->where('iop.`id_image` = '.(int) $id_image);
+
+        return(\Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build()));
+    }
+
     public static function createDatabase($className = null)
     {
         $success = true;
