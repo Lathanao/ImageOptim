@@ -37,12 +37,11 @@ class ImageOptim extends Module
         $this->displayName = $this->l('Optimize your images');
         $this->description = $this->l('Optimize add lighten the weight your shop\'s images.');
         $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.99.99');
-        if (!is_dir(_PS_PROD_IMG_DIR_)) {
+        if (!is_dir(_PS_PROD_IMG_DIR_))
             $this->warning = $this->l('Your images directory doesn\'t exist.');
-        }
-        if (!is_writable(_PS_PROD_IMG_DIR_)) {
+        if (!is_writable(_PS_PROD_IMG_DIR_))
             $this->warning = $this->l('Your images directory isn\'t writable.');
-        }
+
     }
 
     public function install()
@@ -67,8 +66,9 @@ class ImageOptim extends Module
 
     public function getContent()
     {
-        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/css/admin_imageOptim.css');
+        $this->context->controller->addCSS(_MODULE_DIR_.$this->name.'/css/jquery.growl.css');
         $this->context->controller->addJS(_MODULE_DIR_.$this->name.'/js/admin_imageOptim.js');
+        $this->context->controller->addJS(_MODULE_DIR_.$this->name.'/js/jquery.growl.js');
 
         $this->getSetup();
         $this->setSetup();
@@ -244,19 +244,19 @@ class ImageOptim extends Module
 
     public function getListImageOpt()
     {
-      $dbquery = new DbQuery();
-      $dbquery->select('iop.id, iop.id_image, iop.id_type, iop.width, iop.height, iop.weight_origin, iop.weight_opt,  (iop.weight_opt / iop.weight_origin * 100) as rate, iop.quality, iop.md5_origin, iop.date_upd');
-      $dbquery->from('image_opt', 'iop');
+        $dbquery = new DbQuery();
+        $dbquery->select('iop.id, iop.id_image, iop.id_type, iop.width, iop.height, iop.weight_origin, iop.weight_opt,  (iop.weight_opt / iop.weight_origin * 100) as rate, iop.quality, iop.md5_origin, iop.date_upd');
+        $dbquery->from('image_opt', 'iop');
 
-      return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
     }
 
     public function getListImageOrigin()
     {
-      $dbquery = new DbQuery();
-      $dbquery->select('*, img.`id_image` AS `id`');
-      $dbquery->from('image_origin', 'img');
-      return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
+        $dbquery = new DbQuery();
+        $dbquery->select('*, img.`id_image` AS `id`');
+        $dbquery->from('image_origin', 'img');
+        return Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($dbquery->build());
     }
 
     public function paginateSubscribers($subscribers, $page = 1, $pagination = 50)
@@ -283,8 +283,6 @@ class ImageOptim extends Module
 
         return $this->display(__FILE__, 'views/admin/list_action_generate.tpl');
     }
-
-
 
     public function getSetup()
     {
@@ -341,19 +339,22 @@ class ImageOptim extends Module
 
     public function ajaxProcessGenerateOptimImage()
     {
+        ob_end_clean();
+        header('Content-Type: application/json');
+
         if ($this->secure_key != Tools::getValue("key"))
-            die('Error key');
+            die(json_encode(['error' => 'Error key']));
 
         if (Tools::isSubmit('id_image'))
-            die($this->getOptimisedImage(Tools::getValue("id_image")));
+            $this->getOptimisedImage(Tools::getValue("id_image"));
 
-        die('Error');
+        die(json_encode(['error' => 'Error ajaxProcess']));
     }
 
     public function getOptimisedImage($id_imageOpt = null)
     {
         if ($id_imageOpt == null)
-            die('Error id');
+            die(json_encode(['error' => 'Error id']));
 
         define('WEBSERVICE', 'http://api.resmush.it/ws.php?img=');
         $demo = "https://front.thirtybees.com";
@@ -372,19 +373,17 @@ class ImageOptim extends Module
         $result = json_decode(file_get_contents(WEBSERVICE . $url));
 
         if(isset($result->error))
-            die($result->error);
+            die(json_encode(['error' => 'Server Error :'+$result->error]));
         else {
 
             if(!file_put_contents($pathOpt, fopen($result->dest, 'r')))
-                die('Error during saving file on disk');
+                die(json_encode(['error' => 'Error during saving new file on disk, may be file not exist']));
 
             $imageOpt->weight_opt = filesize ( $pathOpt );
             $imageOpt->md5_origin = (string)md5($pathOpt);
             if(!$imageOpt->save())
-                die('Error during saving imageOpt Object');
+                die(json_encode(['error' => 'Error during saving imageOpt Object']));
 
-            ob_end_clean();
-            header('Content-Type: application/json');
             die(json_encode([
                 'dest' => $result->dest,
                 'pathOpt' => $pathOpt,
@@ -392,6 +391,6 @@ class ImageOptim extends Module
             ]));
         }
 
-        die('Error process');
+        die(json_encode(['error' => 'Error process']));
     }
 }

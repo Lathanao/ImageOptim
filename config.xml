@@ -2,7 +2,7 @@
 <module>
 	<name>ImageOptim</name>
 	<displayName><![CDATA[Optimize your images]]></displayName>
-	<version><![CDATA[1.0.0]]></version>
+	<version><![CDATA[0.1.1]]></version>
 	<description><![CDATA[Optimize add lighten the weight your shop's images.]]></description>
 	<author><![CDATA[Lathanao]]></author>
 	<tab><![CDATA[front_office_features]]></tab>
