@@ -14,6 +14,12 @@ Degrease the images weight and increase the general performance of your Thirtees
 * If something wrong happened, just rebuilt your picture in admin panel > preferences > images.
 * In admin panel > preferences > images, you can setup JPEG compression at 100%, and let this modules weightlight you final images.
 
+**How to install**
+
+* Donwload the module (green button on the top-right).
+* Put all files in the modules directory.
+* Install the module via the admin panel, like every modules.
+
 ## NOTICE OF LICENSE
 
 * This source file is subject to the Academic Free License (AFL 3.0)
