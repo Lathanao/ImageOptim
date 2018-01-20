@@ -27,7 +27,7 @@ class ImageOptim extends Module
     {
         $this->name = 'ImageOptim';
         $this->tab = 'front_office_features';
-        $this->version = '0.1.1';
+        $this->version = '0.1.2';
         $this->author = 'Lathanao';
         $this->bootstrap = true;
         $this->secure_key = Tools::encrypt($this->name);
